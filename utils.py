@@ -1,7 +1,11 @@
 import csv
 import json
+import pprint
+
+import numpy
 import numpy as np
 from itertools import groupby
+import tree
 
 class DataProcessing:
 
@@ -13,6 +17,7 @@ class DataProcessing:
     def _read_csv(file_name):
         csv_reader = csv.DictReader(open(file_name), delimiter=";")
         return csv_reader.fieldnames, [dict(d) for d in csv_reader]
+
 
     @staticmethod
     def _mapping_detector(m, source_types, shoe_config):
@@ -118,4 +123,104 @@ class DataProcessing:
             #         print("\t\t\t\tVariation: %d"%j)
 
     def export_as_JSON(self):
+        pass
+
+from collections import defaultdict
+class DataProcessing2:
+    def __init__(self, pricat_filename="./data/pricat.csv", mappings_filename="./data/mappings.csv"):
+        self.pricat_header, self.pricat_data = self._read_csv_file(pricat_filename)
+        self.mappings_header, self.mappings_data = self._read_csv_file(mappings_filename)
+        # self.get_occurrences_of_unique_values_2()
+        # self.get_hierarchy_definition()
+        # self.create_tree()
+        self._remove_empty_columns()
+        self.group()
+
+    @staticmethod
+    def _read_csv_file(file_name):
+        data = list(csv.reader(open(file_name), delimiter=";"))
+        pricat_header = data[0]
+        pricat_data = np.array(data[1:])
+        return pricat_header, pricat_data
+
+    def _remove_empty_columns(self):
+        empty_columns = []
+        for i in range(len(self.pricat_header)):
+            if all(self.pricat_data[:, i] == ''):
+                empty_columns.append(i)
+        self.pricat_header = np.delete(self.pricat_header, empty_columns)
+        self.pricat_data = np.delete(self.pricat_data, empty_columns, axis=1)
+        pass
+
+
+    def _get_hierarchy_structure(self):
+        # Track uniqueness in each column.
+        uniqueness = {}
+        # Find unique values in each column.
+        for i, column_name in enumerate(self.pricat_header):
+            uniqueness[column_name] = np.unique(self.pricat_data[:, i])
+        # Sort column_names by their uniqueness.
+        sorted_column_names = sorted(uniqueness.items(), key=lambda item: len(item[1]))
+        # Merge, to create levels of hierarchy.
+        structure = defaultdict(list)
+        for x in sorted_column_names:
+            structure[len(x[1])].append(x)
+        # Sorting order:
+        # columns_order = [self.pricat_header[x[0]] for x in sorted_column_names]
+        return structure #, columns_order
+
+    def _get_sorted_columns_by_hierarchy_structure(self):
+        pass
+
+    def group(self, max_tiers=3):
+        structure = self._get_hierarchy_structure()
+        # Sort columns by hierarchy structure
+        # sorted_pricat_data = self.pricat_data.take(columns_order, 1)
+        print("Catalog")
+        # for tier in structure.values():
+        #     for field, values in tier:
+        #         print(name)
+        # Create hierarchical tree
+        # t = tree.tree()
+        # for row in sorted_pricat_data:
+        #     tree.add(t, row)
+        # pprint.pprint(tree.dicts(t))
+        parent = {}
+        for tier_label, tier_attributes in structure.items():
+            node = {}
+            for attribute_name, value in tier_attributes:
+                node[attribute_name] = value
+            parent[tier_label] = node
+        pass
+
+
+
+
+    def get_occurrences_of_unique_values_2(self):
+        d = {}
+        for col, column_name in enumerate(self.pricat_header):
+            occurrences_in_column = defaultdict(list)
+            for row, value in enumerate(self.pricat_data[:, col]):
+                occurrences_in_column[value].append(row)
+            d[column_name] = occurrences_in_column
+        sorted_d = sorted(d.items(), key=lambda item: len(item[1]))
+        pass
+
+    def hierarchical_sorted_pricat(self):
+        pass
+
+    def get_occurrences_of_unique_values_3(self):
+        x = self.dicts(self.pricat_data)
+        pass
+
+    def create_tree(self):
+        # 1] sort columns according ot occurrences
+
+
+
+        t = tree.tree()
+        for row in self.pricat_data:
+            tree.add(t, row)
+        x = tree.dicts(t)
+        pprint.pprint(x)
         pass
