@@ -165,35 +165,27 @@ class DataProcessing2:
         structure = defaultdict(list)
         for x in sorted_column_names:
             structure[len(x[1])].append(x)
-        # Sorting order:
-        # columns_order = [self.pricat_header[x[0]] for x in sorted_column_names]
-        return structure #, columns_order
-
-    def _get_sorted_columns_by_hierarchy_structure(self):
-        pass
+        return structure
 
     def group(self, max_tiers=3):
+        # Synthesize the hierarchy tree.
         structure = self._get_hierarchy_structure()
-        # Sort columns by hierarchy structure
-        # sorted_pricat_data = self.pricat_data.take(columns_order, 1)
-        print("Catalog")
-        # for tier in structure.values():
-        #     for field, values in tier:
-        #         print(name)
-        # Create hierarchical tree
-        # t = tree.tree()
-        # for row in sorted_pricat_data:
-        #     tree.add(t, row)
-        # pprint.pprint(tree.dicts(t))
-        parent = {}
+        tier_counter = 0
+        root = {}
+        parent = root
         for tier_label, tier_attributes in structure.items():
-            node = {}
+            if tier_counter < max_tiers:
+                node = {}
+                parent[tier_label] = node
             for attribute_name, value in tier_attributes:
-                node[attribute_name] = value
-            parent[tier_label] = node
-        pass
-
-
+                node[attribute_name] = value.tolist()
+            parent = node
+            tier_counter += 1
+        # Convert to JSON format:
+        json_object = json.dumps(root, indent=4)
+        # pprint.pprint(json_object)
+        # return json_object
+        pprint.pprint(json_object)
 
 
     def get_occurrences_of_unique_values_2(self):
@@ -213,14 +205,3 @@ class DataProcessing2:
         x = self.dicts(self.pricat_data)
         pass
 
-    def create_tree(self):
-        # 1] sort columns according ot occurrences
-
-
-
-        t = tree.tree()
-        for row in self.pricat_data:
-            tree.add(t, row)
-        x = tree.dicts(t)
-        pprint.pprint(x)
-        pass
