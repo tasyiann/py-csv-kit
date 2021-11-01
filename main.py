@@ -1,30 +1,20 @@
-# from utils import DataProcessing
-#
-# if __name__ == '__main__':
-#
-#     # Initiate Data Processor
-#     data_processor = DataProcessing("./data/pricat.csv", "./data/mappings.csv")
-#
-#     # Format price catalogue using the mappings.
-#     updated_header, updated_pricat = data_processor.format_pricat_with_mappings()
-#
-#     # Export updated price catalogue in csv format.
-#     data_processor.export_in_csv(updated_header, updated_pricat, "./results/mapped_pricat.csv")
-#
-#     # Create the structure of the Catalogue, using Grouping.
-#     data = data_processor._read_csv_to_2d_array("./results/mapped_pricat.csv")
-#     pass
-    # tier1_group_by = "brand"  # todo: Do it automatically determine that field (the one with the most similarities))
-    # # todo: export multiple variations of that Grouping Catalogue (each different from the group_by value)
-    # tier2_group_by = "article_number"
-    # by_brand, by_article_num = data_processor.create_catalogue_structure_using_grouping(updated_pricat)
-    #
-    # # To JSON
-    # data_processor.to_json_format(updated_pricat, by_brand, by_article_num)
-
-from utils import DataProcessing2
+from utils import DataMapping, DataGrouping
 
 if __name__ == '__main__':
 
-    data_processor = DataProcessing2(pricat_filename="./results/mapped_pricat.csv")
-    pass
+    # Initiate Mapping Data Processor
+    mapping_processor = DataMapping("./data/test.csv", "./data/mappings.csv")
+
+    # Format price catalogue using the mappings.
+    mapping_processor.format_pricat_with_mappings("./results/mapped_pricat_test.csv")
+
+    # Initiate Grouping Data Processor
+    groupping_processor = DataGrouping("./results/mapped_pricat_test.csv")
+
+    # [Recursive & N-Depth] Convert flat data to structured data.
+    groupping_processor.group_recursively("./results/group_recursively_test.json")
+
+    # [Non-recursive & 3-Depth] Convert flat data to structured data.
+    # data = mapping_processor._read_csv("./results/mapped_pricat.csv")
+    # by_brand, by_article_num = mapping_processor.create_catalogue_structure_using_grouping(updated_pricat)
+    # mapping_processor.to_json_format(updated_pricat, by_brand, by_article_num)
