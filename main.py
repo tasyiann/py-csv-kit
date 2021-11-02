@@ -11,13 +11,9 @@ if __name__ == '__main__':
     # Initiate Grouping Data Processor
     groupping_processor = DataGrouping("./results/mapped_pricat.csv")
 
-    # [Tree-based Method] Convert flat data to structured data.
-    # groupping_processor.group_recursively("./results/group_recursively_test_A.json")
+    # Grouping : A Tree-based Method & Automatic detection of tiers (levels)
+    groupping_processor.group(save_file="./results/group.json", max_tiers=3)
 
-    # [Tree-based Method] Convert flat data to structured data.
-    groupping_processor.group_b(save_file="./results/group_recursively_test_B.json", max_tiers=3)
-
-    # [Non-recursive & 3-Depth] Convert flat data to structured data.
-    # data = mapping_processor._read_csv("./results/mapped_pricat.csv")
-    # by_brand, by_article_num = mapping_processor.create_catalogue_structure_using_grouping(updated_pricat)
-    # mapping_processor.to_json_format(updated_pricat, by_brand, by_article_num)
+    # [A Different Approach on Grouping]: Tree-based, utilizing the dictionary keys.
+    # Do not evaluate this method. It's just for fun & discussion.
+    groupping_processor.group_key_based("./experimental_results/group_experimental.json")

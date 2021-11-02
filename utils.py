@@ -2,6 +2,7 @@ import csv          # Read/Write csv files.
 import json         # json.dumps
 import tree         # Custom tree with dictionaries.
 import numpy as np  # np.unique
+from collections import defaultdict
 
 
 class DataMapping:
@@ -63,61 +64,7 @@ class DataMapping:
             for shoe_config in pricat:
                 writer.writerow(shoe_config)
 
-    def combine_fields_into_a_new_field(self, source_types, destination_type):
-        pass
 
-    # def create_catalogue_structure_using_grouping(self, pricat=None, tier_1_field="brand", tier_2_field="article_number"):
-    #     # todo: The method is not correct!
-    #     #       tier2 does not commune with tier1
-    #     if not pricat:
-    #         pricat=self.pricat
-    #
-    #     # Group into levels
-    #     tier_2 = {'groups': {}, 'common_attributes': []}     # (e.g. Articles)
-    #     tier_1 = {'groups': {}, 'common_attributes': []}     # (e.g. Catalogue)
-    #
-    #     for idx, shoe_config in enumerate(pricat):
-    #         # Group tier 2 (e.g. by "article_number")
-    #         if shoe_config[tier_2_field] not in tier_2['groups']:
-    #             tier_2['groups'][shoe_config[tier_2_field]] = []
-    #         tier_2['groups'][shoe_config[tier_2_field]].append(idx)
-    #
-    #         # Add new brands: Group tier 1 (e.g. by "brand")
-    #         if shoe_config[tier_1_field] not in tier_1['groups']:
-    #             tier_1['groups'][shoe_config[tier_1_field]] = []
-    #
-    #         # Add the Article to that brand:
-    #         if shoe_config[tier_2_field] not in tier_1['groups'][shoe_config[tier_1_field]]:
-    #             tier_1['groups'][shoe_config[tier_1_field]].append(shoe_config[tier_2_field])
-    #
-    #         # # Group tier 1 (e.g. by "brand")
-    #         # if shoe_config[tier_1_field] not in tier_1:
-    #         #     tier_1[shoe_config[tier_1_field]] = []
-    #         # tier_1[shoe_config[tier_1_field]].append(shoe_config[])
-    #
-    #     return tier_1, tier_2
-    #
-    # def to_json_format(self, pricat, tier1, tier2):
-    #     print("Catalog")
-    #     for t1_key in tier1['groups']:
-    #         print("\tbrand:%s" %t1_key)
-    #         for t2_key in tier1['groups'][t1_key]:
-    #             print("\t\tArticle\n\t\t\tarticle_number: "+t2_key)
-    #             for t3_key in tier2['groups'][t2_key]:
-    #                 print("\t\t\t\tVariation: %s" % pricat[t3_key])
-    #
-    #         #
-    #         # for i in brands[brand_name]:
-    #         #     # Tier 2: Articles for that brand
-    #         #     article_num = pricat[i]['article_number']
-    #         #     print("\t\tArticle\n\t\t\tarticle_number: "+article_num)
-    #         #     for j in article_nums[article_num]:
-    #         #         print("\t\t\t\tVariation: %d"%j)
-    #
-    # def export_as_JSON(self):
-    #     pass
-
-from collections import defaultdict
 class DataGrouping:
     def __init__(self, pricat_filename="./data/pricat.csv"):
         self.pricat_header, self.pricat_data = self._read_csv_file(pricat_filename)
@@ -137,60 +84,34 @@ class DataGrouping:
                 empty_columns.append(i)
         self.pricat_header = np.delete(self.pricat_header, empty_columns)
         self.pricat_data = np.delete(self.pricat_data, empty_columns, axis=1)
-        pass
 
-    def _get_hierarchical_order(self):
-        # Track uniqueness in each column.
-        uniqueness = {}
-        # Find unique values in each column.
-        for i, column_name in enumerate(self.pricat_header):
-            uniqueness[i] = np.unique(self.pricat_data[:, i])
-        # Get order of hierarchy between columns.
-        order_indices, _ = zip(*sorted(uniqueness.items(), key=lambda item: len(item[1])))
-        order_indices = list(order_indices)
-        return order_indices
+    def _get_hierarchy_structure(self, max_tiers=3):
+        """
+        Defines the tiers (level) by the uniqueness in each attribute.
 
-    def group_recursively(self, save_file=None):
-        # Sort columns in a hierarchical matter.
-        # order_indices = self._get_hierarchical_order()
-        tiers, order_indices = self._get_hierarchy_structure_modified()
-        sorted_column_data = self.pricat_data[:, order_indices]
-        sorted_column_names = list(self.pricat_header[order_indices])
-        # Add rows in tree
-        t = tree.tree()
-        # root = {"catalog":tree.tree()}
-        # my_tree = defaultdict(list)
-        for row in sorted_column_data:
-            tree.add(t, row, sorted_column_names)
-            # tree.add_flat(t, row, sorted_column_names)
-            # tree.add_x(my_tree, row, sorted_column_names, tiers)
-        # Group recursively
-        w = tree.dicts(t)
-        # w = tree.normalize_dict(t, my_tree)
-        # e = tree.exper(t)
-        # p = tree.walk_dict(t)
-        # h = tree.h
-        # w = tree.dicts_x(t, my_tree, sorted_column_names, 0, tiers)
-        json_str = w
-        # json_str["'catalog'"] = w
-        x = json.dumps(json_str, indent=4)\
-            .replace(": {}", "")\
-            .replace("\"", "")\
-            .replace("'","\"") \
-            .replace("{", "[{") \
-            .replace("}", "}]").replace(": [{", ", \"get\": [{")\
-            # .replace("\"catalog\", \"get\":", "\"catalog\":")
-            # .replace("\"article_number\"", "\"Article\" : [\"article_number\"")\
-        # more_structured = tree.prettify(t, tiers, sorted_column_names)
-        pass
-        # Save file
-        if save_file:
-            f = open(save_file, "w")
-            f.write(x)
-            f.close()
-        return x
+        Pipeline:
+        --------
+            1.  We compute the number of unique values in each column, and we call it uniqueness.
+                In that way, we automatically define the hierarchy in the JSON.
 
-    def _get_hierarchy_structure_modified(self, max_tiers=3):
+                defaultdict(<class 'list'>,
+                {   1: [0, 1, 2, 3, 4, 5],
+                    2: [6, 7, 8, 9],
+                    3: [10, 11],
+                    4: [12, 13],
+                    7: [14, 15],
+                    49: [16]
+                })
+
+                The above structure, will define the tiers in the JSON. For example:
+                    - Attributes [0, 1, 2, 3, 4, 5] have only 1 possible value.
+                    - Attributes [6, 7, 8, 9] have only 2 possible values.
+                    - (...)
+
+
+        :param max_tiers:
+        :return:
+        """
         # Track uniqueness in each column.
         uniqueness = {}
         # Find unique values in each column.
@@ -211,32 +132,32 @@ class DataGrouping:
                 d["tier_%d"%i] = x
             else:
                 d["tier_%d" % (max_tiers-1)] += x
-        pass
         return d, order_indices
 
-    def group_b(self, save_file, max_tiers=3):
+    def group(self, save_file=None, max_tiers=3):
+        """
+        Creates a multi-tier data structure (JSON), from flat data.
+
+        Pipeline:
+        --------
+            1. Automatically define the tiers (levels).
+            2. Sort data.
+            3. In each level, we keep track of the parent & the new child.
+            4. Add a tier to the tree, only if new child does not already exist.
+
+        :param save_file:
+        :param max_tiers:
+        :return:
+        """
         # Get structure & sort
-        tiers_structure, order = self._get_hierarchy_structure_modified(max_tiers)
+        tiers_structure, order = self._get_hierarchy_structure(max_tiers)
         sorted_column_data = self.pricat_data[:, order]
         sorted_column_names = list(self.pricat_header[order])
         tiers_names = list(tiers_structure.keys())
+
         # Initialize tree
         root = defaultdict(list)
         root['catalog'] = defaultdict(list)
-        # for tier_name in tiers_structure:
-        #     root[tier_name] = []
-
-        catalog = {'tier_0':
-                       [
-                           {'tier_1':
-                                [
-                                    {'tier_2':
-                                         []
-                                     }
-                                ]
-                           }
-                       ]
-        }
 
         # For each row
         for row in sorted_column_data:
@@ -246,165 +167,75 @@ class DataGrouping:
                 tier = defaultdict(list)
                 for idx in tier_attribute_ids:
                     tier[sorted_column_names[idx]] = row[idx]
-
-                # Child tier_name:
-                if tier_id < len(tiers_structure)-1:
-                    child_tier_name = tiers_names[tier_id+1]
-                else:
-                    child_tier_name = ""
-                child = self.continue_chain(tier, parent[tier_name],tier_name, child_tier_name, parent)
-                print("%s has a new sibling. It's len now: %d"% (tier_name, len(parent[tier_name])))
+                # Continue chain
+                child = self.continue_chain(tier, parent[tier_name],tier_name, tier_id, tiers_structure, tiers_names, parent)
                 parent = child
 
         # Traverse tree
-        pass
+        x = json.dumps(root, indent=4)
+        if save_file:
+            f = open(save_file, "w")
+            f.write(x)
+            f.close()
+        print(x)
 
-    def continue_chain(self, item, tier, tier_name, child_tier_name, parent):
+    def continue_chain(self, item, tier, tier_name, tier_id, tiers_structure, tiers_names, parent):
+        # Child tier_name:
+        if tier_id < len(tiers_structure) - 1:
+            child_tier_name = tiers_names[tier_id + 1]
+        else:
+            child_tier_name = ""
+
         for variation in tier:
             temp = variation.copy()
             if child_tier_name in temp:
                 temp.pop(child_tier_name)
             if item == temp:
                 return variation
-
+        # print("%s has a new sibling. It's len now: %d"% (tier_name, len(parent[tier_name])))
         parent[tier_name].append(item)
         return item
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    def _get_hierarchy_structure(self):
-        # Track uniqueness in each column.
-        uniqueness = {}
-        # Find unique values in each column.
-        for i, column_name in enumerate(self.pricat_header):
-            uniqueness[column_name] = np.unique(self.pricat_data[:, i])
-        # Sort column_names by their uniqueness.
-        sorted_column_names = sorted(uniqueness.items(), key=lambda item: len(item[1]))
-        # Merge, to create levels of hierarchy.
-        structure = defaultdict(list)
-        for x in sorted_column_names:
-            structure[len(x[1])].append(x)
-        return structure
-
-    def _set_parents(self):
-        structure = self._get_hierarchy_structure()
-        pass
-
-    def _get_parent(self, key, value, next_tier_array):
-        next_tier_array[0].index()
-        self._get_parent()
-        print("parent: (%s:%s)" % ())
-
-    def group(self, max_tiers=3):
-        self._set_parents()
-
-
-
-
-
-    def dicts(self, t):
-        for k in t:
-            return {k: self.dicts(t[k])}
-
-    def group_3(self):
-        # this one.
-        import collections
-        # Synthesize the hierarchy tree.
-        structure = self._get_hierarchy_structure()
-        structure = collections.OrderedDict(sorted(structure.items(), reverse=True))
-        # Start from leaves (lowest tier)
-        root = {}
-        dict_tier = defaultdict(list)
-        for tier_label, tier_attributes in structure.items():
-            for attribute_name, attribute_values in tier_attributes:
-                for value in attribute_values:
-                    dict_tier[value].append(defaultdict(list))
-            # pprint.pprint(dict_tier)
-
-
-
-    def group_2(self):
-        # Sort data
-        structure, order_indices = self._get_hierarchy_structure()
-        sorted_column_names = self.pricat_header[order_indices]
+    def group_key_based(self, save_file=None):
+        """
+        EXPERIMENTAL
+        -----------
+
+        It's just for fun & discussion.
+        Do not evaluate this method.
+
+        This is a different approach on grouping.
+        We let the dictionaries to do the job!
+
+        First, we initialize a tree, which is a dict that has dict in his nodes, and so on...
+        We sort the columns, then we add each attribute to the tree.
+        The result would be something like this:
+        (...):{"'size_name': '38'": {"'ean': '8719245200978'": {}},(..)
+
+        It will need some modification on the JSON format.
+
+        :param save_file:
+        :return:
+        """
+        # Sort columns in a hierarchical matter.
+        tiers, order_indices = self._get_hierarchy_structure()
         sorted_column_data = self.pricat_data[:, order_indices]
+        sorted_column_names = list(self.pricat_header[order_indices])
+        # Add rows in tree. That's it!
         t = tree.tree()
         for row in sorted_column_data:
-            tree.add(t, row)
-        x = tree.dicts(t)
-        jobj = json.dumps(x, indent=4)
-        print(jobj)
-        pass
-
-
-    def get_occurrences_of_unique_values_2(self):
-        d = {}
-        for col, column_name in enumerate(self.pricat_header):
-            occurrences_in_column = defaultdict(list)
-            for row, value in enumerate(self.pricat_data[:, col]):
-                occurrences_in_column[value].append(row)
-            d[column_name] = occurrences_in_column
-        sorted_d = sorted(d.items(), key=lambda item: len(item[1]))
-        pass
-
-    def hierarchical_sorted_pricat(self):
-        pass
-
-    def get_occurrences_of_unique_values_3(self):
-        x = self.dicts(self.pricat_data)
-        pass
-
+            tree.add(t, row, sorted_column_names)
+        # Simplify their type recursively: (from defaultdict(tree) to dict())
+        w = tree.dicts(t)
+        # This method does not return a correct JSON.
+        x = json.dumps(w, indent=4)\
+            .replace(": {}", "")\
+            .replace("\"", "")\
+            .replace("'","\"") \
+            .replace("{", "[{") \
+            .replace("}", "}]").replace(": [{", ", \"get\": [{")
+        if save_file:
+            f = open(save_file, "w")
+            f.write(x)
+            f.close()
+        return x
