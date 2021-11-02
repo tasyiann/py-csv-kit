@@ -3,16 +3,19 @@ from utils import DataMapping, DataGrouping
 if __name__ == '__main__':
 
     # Initiate Mapping Data Processor
-    mapping_processor = DataMapping("./data/test.csv", "./data/mappings.csv")
+    mapping_processor = DataMapping("./data/pricat.csv", "./data/mappings.csv")
 
     # Format price catalogue using the mappings.
-    mapping_processor.format_pricat_with_mappings("./results/mapped_pricat_test.csv")
+    mapping_processor.format_pricat_with_mappings("./results/mapped_pricat.csv")
 
     # Initiate Grouping Data Processor
-    groupping_processor = DataGrouping("./results/mapped_pricat_test.csv")
+    groupping_processor = DataGrouping("./results/mapped_pricat.csv")
 
-    # [Recursive & N-Depth] Convert flat data to structured data.
-    groupping_processor.group_recursively("./results/group_recursively_test.json")
+    # [Tree-based Method] Convert flat data to structured data.
+    # groupping_processor.group_recursively("./results/group_recursively_test_A.json")
+
+    # [Tree-based Method] Convert flat data to structured data.
+    groupping_processor.group_b(save_file="./results/group_recursively_test_B.json", max_tiers=3)
 
     # [Non-recursive & 3-Depth] Convert flat data to structured data.
     # data = mapping_processor._read_csv("./results/mapped_pricat.csv")

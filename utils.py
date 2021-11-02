@@ -190,61 +190,7 @@ class DataGrouping:
             f.close()
         return x
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    def _get_hierarchy_structure_modified(self):
+    def _get_hierarchy_structure_modified(self, max_tiers=3):
         # Track uniqueness in each column.
         uniqueness = {}
         # Find unique values in each column.
@@ -261,16 +207,122 @@ class DataGrouping:
         # Keep the max_tiers-1 separate and merge the rest.
         d = {}
         for i, x in enumerate(structure.values()):
-            d["tier_%d" % i] = x
-        #     if i < max_tiers:
-        #         d["tier_%d"%i] = x
-        #     else:
-        #         d["tier_%d" % (max_tiers-1)] += x
-        # pass
-
-
-
+            if i < max_tiers:
+                d["tier_%d"%i] = x
+            else:
+                d["tier_%d" % (max_tiers-1)] += x
+        pass
         return d, order_indices
+
+    def group_b(self, save_file, max_tiers=3):
+        # Get structure & sort
+        tiers_structure, order = self._get_hierarchy_structure_modified(max_tiers)
+        sorted_column_data = self.pricat_data[:, order]
+        sorted_column_names = list(self.pricat_header[order])
+        tiers_names = list(tiers_structure.keys())
+        # Initialize tree
+        root = defaultdict(list)
+        root['catalog'] = defaultdict(list)
+        # for tier_name in tiers_structure:
+        #     root[tier_name] = []
+
+        catalog = {'tier_0':
+                       [
+                           {'tier_1':
+                                [
+                                    {'tier_2':
+                                         []
+                                     }
+                                ]
+                           }
+                       ]
+        }
+
+        # For each row
+        for row in sorted_column_data:
+            # Create the tier of that shoe_config
+            parent = root['catalog']
+            for tier_id, (tier_name, tier_attribute_ids) in enumerate(tiers_structure.items()):
+                tier = defaultdict(list)
+                for idx in tier_attribute_ids:
+                    tier[sorted_column_names[idx]] = row[idx]
+
+                # Child tier_name:
+                if tier_id < len(tiers_structure)-1:
+                    child_tier_name = tiers_names[tier_id+1]
+                else:
+                    child_tier_name = ""
+                child = self.continue_chain(tier, parent[tier_name],tier_name, child_tier_name, parent)
+                print("%s has a new sibling. It's len now: %d"% (tier_name, len(parent[tier_name])))
+                parent = child
+
+        # Traverse tree
+        pass
+
+    def continue_chain(self, item, tier, tier_name, child_tier_name, parent):
+        for variation in tier:
+            temp = variation.copy()
+            if child_tier_name in temp:
+                temp.pop(child_tier_name)
+            if item == temp:
+                return variation
+
+        parent[tier_name].append(item)
+        return item
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
