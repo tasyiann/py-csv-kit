@@ -1,24 +1,44 @@
 import csv          # Read/Write csv files.
 import json         # json.dumps
-import tree         # Custom tree with dictionaries.
+import tree         # DataGrouping.group_by_key (experimental)
 import numpy as np  # np.unique
 from collections import defaultdict
 
 
 class DataMapping:
+    """
+    First section of the Coding Challenge.
+    ---------------------------------------
 
+    Data are parsed as dictionaries, and the mapping is done in a loop using their keys.
+
+    """
     def __init__(self, pricat_filename="./data/pricat.csv", mappings_filename="./data/mappings.csv"):
         self.pricat_header, self.pricat = self._read_csv(pricat_filename)
         _, self.mappings = self._read_csv(mappings_filename)
 
     @staticmethod
     def _read_csv(file_name):
+        """
+        Reads CSV file, into list of dictionaries (key & value).
+
+        :param file_name: CSV file name
+        :return:list of dictionaries.
+        """
         csv_reader = csv.DictReader(open(file_name), delimiter=";")
         return csv_reader.fieldnames, [dict(d) for d in csv_reader]
 
 
     @staticmethod
     def _mapping_detector(m, source_types, shoe_config):
+        """
+        Detect if mapping applies for that product config.
+
+        :param m: mapping
+        :param source_types: source attribute
+        :param shoe_config: dictionary of the product config
+        :return:
+        """
         source_values = m['source'].split('|')
         for source_value, source_type in zip(source_values, source_types):
             if source_type not in shoe_config or shoe_config[source_type] != source_value:
@@ -27,12 +47,43 @@ class DataMapping:
 
     @staticmethod
     def _update_header(header, source_type, destination_type):
+        """
+        The pricat data are in a dictionary format.
+        For this reason, we remove or add a new attribute, depending on the mapping.
+
+        Example of pricat data:
+
+            {'ean': '8719245200978',
+            'supplier': 'Rupesco BV',
+            'brand': 'Via Vai',
+            'catalog_code': '', (...)}
+
+
+        :param header: List of attribute names.
+        :param source_type: Source attribute name.
+        :param destination_type: Destination attribute name.
+        :return: None.
+        """
         if source_type in header:
             header.remove(source_type)
         if destination_type not in header:
             header.append(destination_type)
 
     def format_pricat_with_mappings(self, save_file=None):
+        """
+        Each product configuration is in a dictionary format.
+        Thus, we easily do the mappings of self.pricat, using self.mappings.
+
+        Dictionary example:
+
+            {'ean': '8719245200978',
+            'supplier': 'Rupesco BV',
+            'brand': 'Via Vai',
+            'catalog_code': '', (...)}
+
+        :param save_file: Save filename.
+        :return: The new header & new pricat.
+        """
         pricat_new = self.pricat.copy()
         header_new = self.pricat_header.copy()
 
@@ -58,6 +109,14 @@ class DataMapping:
         return header_new, pricat_new
 
     def _export_in_csv(self, header, pricat, filename):
+        """
+        Exports data in CSV file.
+
+        :param header: Attribute names.
+        :param pricat: Data.
+        :param filename: Save filename.
+        :return: None
+        """
         with open(filename, 'w', newline='') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=header, delimiter=";")
             writer.writeheader()
@@ -66,18 +125,42 @@ class DataMapping:
 
 
 class DataGrouping:
+    """
+
+    Second section of the Coding Challenge.
+    ---------------------------------------
+
+    The goal is to create a multi-level structure (JSON) from flat data.
+
+    I propose two methods for grouping:
+        - group()               [READY]
+        - group_key_based()     [EXPERIMENTAL]
+
+    The first one has been tested and works fine.
+    The second one is just for fun & discussion.
+
+    """
     def __init__(self, pricat_filename="./data/pricat.csv"):
         self.pricat_header, self.pricat_data = self._read_csv_file(pricat_filename)
         self._remove_empty_columns()
 
     @staticmethod
     def _read_csv_file(file_name):
+        """
+        Read a CSV file into header & data.
+        :param file_name:
+        :return: header, data
+        """
         data = list(csv.reader(open(file_name), delimiter=";"))
         pricat_header = data[0]
         pricat_data = np.array(data[1:])
         return pricat_header, pricat_data
 
     def _remove_empty_columns(self):
+        """
+        Remove empty columns.
+        :return: None
+        """
         empty_columns = []
         for i in range(len(self.pricat_header)):
             if all(self.pricat_data[:, i] == ''):
@@ -89,28 +172,39 @@ class DataGrouping:
         """
         Defines the tiers (level) by the uniqueness in each attribute.
 
-        Pipeline:
-        --------
-            1.  We compute the number of unique values in each column, and we call it uniqueness.
-                In that way, we automatically define the hierarchy in the JSON.
+        Explanation:
+        -----------
+            We compute the number of unique values in each column, and we call it uniqueness.
+            In that way, we automatically define the hierarchy in the JSON.
 
-                defaultdict(<class 'list'>,
-                {   1: [0, 1, 2, 3, 4, 5],
-                    2: [6, 7, 8, 9],
-                    3: [10, 11],
-                    4: [12, 13],
-                    7: [14, 15],
-                    49: [16]
-                })
+            defaultdict(<class 'list'>,
+            {   1: [0, 1, 2, 3, 4, 5],
+                2: [6, 7, 8, 9],
+                3: [10, 11],
+                4: [12, 13],
+                7: [14, 15],
+                49: [16]
+            })
 
-                The above structure, will define the tiers in the JSON. For example:
-                    - Attributes [0, 1, 2, 3, 4, 5] have only 1 possible value.
-                    - Attributes [6, 7, 8, 9] have only 2 possible values.
-                    - (...)
+            The above structure, defines 6 tiers. For example:
+                - Tier_0: Attributes [0, 1, 2, 3, 4, 5] have only 1 possible value.
+                - Tier_1: Attributes [6, 7, 8, 9] have only 2 possible values.
+                - Tier_2: Attributes [10, 11] have only 3 possible values.
+                - Tier_3: Attributes [12, 13] have only 4 possible values.
+                - Tier_4: Attributes [14, 15] have only 7 possible values.
+                - Tier_5: Attributes [16] have only 49 possible values.
+                - (...)
 
+            Depending on the max_tiers, we can merge tiers:
+            {'tier_0': [0, 1, 2, 3, 4, 5],
+            'tier_1': [6, 7, 8, 9],
+            'tier_2': [10, 11, 12, 13, 14, 15, 16]}
 
-        :param max_tiers:
-        :return:
+            The above definition, is used by the group method, to group the attributes
+            of each row in a Tree-Based structure with strict hierarchical properties.
+
+        :param max_tiers: The maximum levels of hierarchy.
+        :return:    A dictionary of structure definition, Order indices to sort by uniqueness.
         """
         # Track uniqueness in each column.
         uniqueness = {}
@@ -145,8 +239,8 @@ class DataGrouping:
             3. In each level, we keep track of the parent & the new child.
             4. Add a tier to the tree, only if new child does not already exist.
 
-        :param save_file:
-        :param max_tiers:
+        :param save_file: Path of save file
+        :param max_tiers: Num of maximum tiers. Exact tier structure is automatically defined.
         :return:
         """
         # Get structure & sort
@@ -168,7 +262,7 @@ class DataGrouping:
                 for idx in tier_attribute_ids:
                     tier[sorted_column_names[idx]] = row[idx]
                 # Continue chain
-                child = self.continue_chain(tier, parent[tier_name],tier_name, tier_id, tiers_structure, tiers_names, parent)
+                child = self.continue_chain(tier, parent[tier_name], tier_name, tier_id, tiers_structure, tiers_names, parent)
                 parent = child
 
         # Traverse tree
@@ -179,7 +273,20 @@ class DataGrouping:
             f.close()
         print(x)
 
-    def continue_chain(self, item, tier, tier_name, tier_id, tiers_structure, tiers_names, parent):
+    @staticmethod
+    def continue_chain(item, tier, tier_name, tier_id, tiers_structure, tiers_names, parent):
+        """
+        It adds a new child to the Tree, only if it does not already exist.
+
+        :param item: Item to be inserted to the Tree.
+        :param tier: Current tier on the tree.
+        :param tier_name: Current tier name.
+        :param tier_id: Current tier id.
+        :param tiers_structure: Structure tiers definition.
+        :param tiers_names: Names of tiers.
+        :param parent: Parent of current tier.
+        :return:
+        """
         # Child tier_name:
         if tier_id < len(tiers_structure) - 1:
             child_tier_name = tiers_names[tier_id + 1]

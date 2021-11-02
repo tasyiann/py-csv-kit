@@ -1,11 +1,9 @@
 from collections import defaultdict
 """
 
-This file is used ONLY in: 'utils.group_key_based' method!
-
-Do not evaluate this approach.
-
-It's just for fun & discussion.
+    This file is used ONLY in: 'utils.group_key_based' method!
+    Do not evaluate this approach.
+    It's just for fun & discussion! :)
 
 """
 
@@ -18,7 +16,7 @@ def dicts(t):
     return {k: dicts(t[k]) for k in t}
 
 
-def add(t, row, header):
+def add(t, row, header, tier):
     for key, value in enumerate(row):
         config = "'%s': '%s'" % (header[key], value)
         if key not in [0, 1, 2, 3, 4]:
